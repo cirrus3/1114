@@ -60,8 +60,8 @@ public class UploadActivity extends AppCompatActivity {
                     public void onActivityResult(ActivityResult result) {
                         if (result.getResultCode() == Activity.RESULT_OK){
                             Intent data = result.getData();
-                            uri = data.getData();
-                            uploadImage.setImageURI(uri);
+                            uri = data.getData(); //선택한 이미지의 URI를 가져옴
+                            uploadImage.setImageURI(uri); //이미지 뷰에 선택한 이미지를 설정
                         } else {
                             Toast.makeText(UploadActivity.this, "No Image Selected", Toast.LENGTH_SHORT).show();
                         }
@@ -74,7 +74,7 @@ public class UploadActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Intent photoPicker = new Intent(Intent.ACTION_PICK);
                 photoPicker.setType("image/*");
-                activityResultLauncher.launch(photoPicker);
+                activityResultLauncher.launch(photoPicker); //갤러리 이미지 선택
             }
         });
 
@@ -126,6 +126,9 @@ public class UploadActivity extends AppCompatActivity {
             String userID = user.getEmail();
             // userId를 사용하여 필요한 작업 수행
             String id = userID;
+
+            //email을 id 변수에 할당, .com을 _com으로 변경
+            id = id.replace(".com", "_com");
 
             String title = uploadTopic.getText().toString();
             String desc = uploadDesc.getText().toString();

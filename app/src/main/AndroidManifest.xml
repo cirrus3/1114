@@ -17,6 +17,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MoracmoracSignInTest">
         <activity
+            android:name=".UserprofileActivity"
+            android:exported="false" />
+        <activity
             android:name=".StoreReviewListActivity"
             android:exported="false" />
         <activity
@@ -27,13 +30,24 @@
             android:exported="false" />
         <activity
             android:name=".UserNoteActivity"
-            android:exported="false" />
+            android:exported="false"
+            />
+
+
         <activity
             android:name=".DetailUserActivity"
             android:exported="false" />
         <activity
             android:name=".UserMenuActivity"
-            android:exported="false" />
+            android:exported="true" >
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW"/>
+            <category android:name="android.intent.category.DEFAULT"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+            <data android:host="moracmoracsignintest.page.link" android:scheme="http"/>
+            <data android:host="moracmoracsignintest.page.link" android:scheme="https"/>
+        </intent-filter>
+        </activity>
         <activity
             android:name=".UpdateActivity"
             android:exported="false" />
@@ -98,7 +112,10 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
+
+
     </application>
 
 </manifest>

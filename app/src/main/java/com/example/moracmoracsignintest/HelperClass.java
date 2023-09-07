@@ -2,7 +2,7 @@ package com.example.moracmoracsignintest;
 
 public class HelperClass {
 
-    String ceoname, phonenum, storename, htpay, category, id;
+    String ceoname, phonenum, storename, htpay, category, id, dataImage;
 
     //id 추가 =>userID
 
@@ -50,14 +50,20 @@ public class HelperClass {
     public void setCategory(String category) {
         this.category = category;
     }
+
+    public String getDataImage() {
+        return dataImage;
+    }
+
     //id 추가
-    public HelperClass(String ceoname, String phonenum, String storename, String htpay, String category, String id) {
+    public HelperClass(String ceoname, String phonenum, String storename, String htpay, String category, String id, String dataImage) {
         this.ceoname = ceoname;
         this.phonenum = phonenum;
         this.storename = storename;
         this.htpay = htpay;
         this.category = category;
         this.id = id;
+        this.dataImage=dataImage;
     }
 
     public HelperClass() {

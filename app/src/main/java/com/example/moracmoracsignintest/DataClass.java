@@ -5,6 +5,7 @@ public class DataClass {
     private String dataTitle;
     private String dataDesc;
     private String dataLang;
+    //img
     private String dataImage;
     private String key;
 
