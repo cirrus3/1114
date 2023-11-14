@@ -11,11 +11,10 @@ public class Review {
         // Default constructor required for Firebase
     }
 
-    public Review(String title, String content, float rating, String markerTitle, String email) {
+    public Review(String title, String content, float rating, String email) {
         this.title = title;
         this.content = content;
         this.rating = rating;
-        this.markerTitle = markerTitle;
         this.email = email;
     }
 

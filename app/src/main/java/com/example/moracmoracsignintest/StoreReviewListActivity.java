@@ -1,25 +1,26 @@
 package com.example.moracmoracsignintest;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,22 +29,16 @@ public class StoreReviewListActivity extends AppCompatActivity {
 
     private ListView reviewListView;
     private Button writeReviewButton;
-    private Button favoriteButton;
-    private Button goToFavoritesButton; // 추가된 버튼 참조
+    private TextView titleTextView;
 
-    private FirebaseFirestore firestore;
+    private DatabaseReference databaseReference;
     private StoreReviewAdapter reviewAdapter;
-    private boolean isFavorite = false;
     private FirebaseUser currentUser;
 
-    private static final String PREF_IS_FAVORITE_KEY = "is_favorite";
-
     private SharedPreferences sharedPreferences;
-    private SharedPreferences.Editor editor;
 
-    private boolean isButtonEnabled = false; // 찜하기 버튼 활성화/비활성화를 위한 플래그
-
-    private DatabaseReference favoritesRef;
+    private static final int REQUEST_REPLY = 1;
+    private static final String PREF_SELECTED_STORE_NAME_KEY = "selected_store_name";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,21 +47,18 @@ public class StoreReviewListActivity extends AppCompatActivity {
 
         reviewListView = findViewById(R.id.review_list_view);
         writeReviewButton = findViewById(R.id.add_review_button);
-        favoriteButton = findViewById(R.id.favorite_button);
-        goToFavoritesButton = findViewById(R.id.go_to_favorites_button); // 버튼 초기화
 
-        firestore = FirebaseFirestore.getInstance();
+        databaseReference = FirebaseDatabase.getInstance().getReference();
         currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
-        favoritesRef = FirebaseDatabase.getInstance().getReference().child("favorites");
-
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        editor = sharedPreferences.edit();
-
-        isFavorite = sharedPreferences.getBoolean(PREF_IS_FAVORITE_KEY, false);
-        updateFavoriteButton();
+        sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
 
         loadReviews();
+
+        String selectedStoreName = sharedPreferences.getString(PREF_SELECTED_STORE_NAME_KEY, "");
+
+        titleTextView = findViewById(R.id.title_text);
+        titleTextView.setText(selectedStoreName + " 리뷰 및 평점 목록");
 
         writeReviewButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -76,123 +68,72 @@ public class StoreReviewListActivity extends AppCompatActivity {
             }
         });
 
-        favoriteButton.setOnClickListener(new View.OnClickListener() {
+        reviewListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onClick(View v) {
-                if (isButtonEnabled) {
-                    addToFavorites();
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                MyReview selectedReview = (MyReview) reviewAdapter.getItem(position);
+
+                if (selectedReview != null) {
+                    List<String> replies = selectedReview.getReplies();
+                    if (replies != null && !replies.isEmpty()) {
+                        Toast.makeText(StoreReviewListActivity.this, "리뷰에 답글이 있습니다.", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(StoreReviewListActivity.this, "답글이 작성되지 않은 리뷰입니다.", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         });
+    }
 
-        goToFavoritesButton.setOnClickListener(new View.OnClickListener() { // 버튼 클릭 리스너
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(StoreReviewListActivity.this, FavoriteListActivity.class);
-                startActivity(intent);
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_REPLY && resultCode == RESULT_OK) {
+            MyReview updatedReview = data.getParcelableExtra("selected_review");
+
+            if (updatedReview != null) {
+                List<MyReview> reviewList = reviewAdapter.getReviewList();
+                int index = reviewList.indexOf(updatedReview);
+                if (index != -1) {
+                    reviewList.set(index, updatedReview);
+                    reviewAdapter.notifyDataSetChanged();
+                }
             }
-        });
-    }
-
-    private void addToFavorites() {
-        if (currentUser == null) {
-            Toast.makeText(this, "사용자가 로그인되어 있지 않습니다.", Toast.LENGTH_SHORT).show();
-            return;
         }
-
-        String userId = currentUser.getEmail(); // 사용자 이메일을 문서 ID로 사용
-        String packageName = getPackageName(); // 패키지 이름(가게 이름) 가져오기
-        String storeEmail = packageName + "@gmail.com"; // "@gmail.com"을 붙인 가게 이메일
-
-        // 사용자 이메일을 Firebase Database 경로로 변환
-        String firebasePath = userId.replace(".", "_")
-                .replace("#", "_")
-                .replace("$", "_")
-                .replace("[", "_")
-                .replace("]", "_"); // '.', '#', '$', '[', ']'를 '_'로 대체
-
-        DatabaseReference userRef = favoritesRef.child(firebasePath);
-
-        if (isFavorite) {
-            // 사용자의 찜 목록에서 가게 이메일 제거
-            userRef.removeValue()
-                    .addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(Task<Void> task) {
-                            if (task.isSuccessful()) {
-                                Toast.makeText(StoreReviewListActivity.this, "찜 목록에서 가게가 제거되었습니다.", Toast.LENGTH_SHORT).show();
-                                isFavorite = false; // isFavorite 업데이트
-                                updateFavoriteButton(); // 버튼 텍스트 업데이트
-                            } else {
-                                Toast.makeText(StoreReviewListActivity.this, "찜 목록에서 가게를 제거하는데 실패했습니다.", Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    });
-        } else {
-            // 사용자의 찜 목록에 패키지 이름 추가
-            userRef.setValue(storeEmail) // storeEmail을 값으로 사용
-                    .addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(Task<Void> task) {
-                            if (task.isSuccessful()) {
-                                // "users" 컬렉션에서 사용자 이메일 업데이트
-                                userRef.child("email")
-                                        .setValue(currentUser.getEmail())
-                                        .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                            @Override
-                                            public void onComplete(Task<Void> task) {
-                                                if (task.isSuccessful()) {
-                                                    Toast.makeText(StoreReviewListActivity.this, "찜 목록에 가게가 추가되었습니다.", Toast.LENGTH_SHORT).show();
-                                                    isFavorite = true; // isFavorite 업데이트
-                                                    updateFavoriteButton(); // 버튼 텍스트 업데이트
-                                                } else {
-                                                    Toast.makeText(StoreReviewListActivity.this, "찜 목록에 가게를 추가하는데 실패했습니다.", Toast.LENGTH_SHORT).show();
-                                                }
-                                            }
-                                        });
-                            } else {
-                                Toast.makeText(StoreReviewListActivity.this, "찜 목록에 가게를 추가하는데 실패했습니다.", Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    });
-        }
-    }
-
-    private void updateFavoriteButton() {
-        editor.putBoolean(PREF_IS_FAVORITE_KEY, isFavorite);
-        editor.apply();
-
-        if (isFavorite) {
-            favoriteButton.setText("찜 해제");
-        } else {
-            favoriteButton.setText("찜하기");
-        }
-        isButtonEnabled = true; // 찜하기 버튼 활성화
     }
 
     private void loadReviews() {
-        firestore.collection("storereviews")
-                .get()
-                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(Task<QuerySnapshot> task) {
-                        if (task.isSuccessful()) {
-                            List<Review> reviewList = new ArrayList<>();
-                            for (DocumentSnapshot document : task.getResult()) {
-                                String title = document.getString("title");
-                                String content = document.getString("content");
-                                float rating = document.getDouble("rating").floatValue();
-                                Review review = new Review(title, content);
-                                review.setRating(rating);
-                                reviewList.add(review);
-                            }
+        String selectedStoreName = sharedPreferences.getString(PREF_SELECTED_STORE_NAME_KEY, "");
 
-                            reviewAdapter = new StoreReviewAdapter(StoreReviewListActivity.this, reviewList);
-                            reviewListView.setAdapter(reviewAdapter);
-                        } else {
-                            Toast.makeText(StoreReviewListActivity.this, "리뷰를 불러오는데 실패했습니다.", Toast.LENGTH_SHORT).show();
+        if (selectedStoreName == null || selectedStoreName.isEmpty()) {
+            Toast.makeText(this, "가게 이름이 없습니다.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        DatabaseReference reviewsRef = databaseReference.child("store_reviews").child(selectedStoreName);
+
+        reviewsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                List<MyReview> reviewList = new ArrayList<>();
+
+                for (DataSnapshot userSnapshot : dataSnapshot.getChildren()) {
+                    for (DataSnapshot reviewSnapshot : userSnapshot.getChildren()) {
+                        MyReview review = reviewSnapshot.getValue(MyReview.class);
+                        if (review != null) {
+                            reviewList.add(review);
                         }
                     }
-                });
+                }
+
+                reviewAdapter = new StoreReviewAdapter(StoreReviewListActivity.this, reviewList);
+                reviewListView.setAdapter(reviewAdapter);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Toast.makeText(StoreReviewListActivity.this, "리뷰를 불러오는데 실패했습니다.", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

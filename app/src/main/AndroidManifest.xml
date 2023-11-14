@@ -76,6 +76,8 @@
         <activity
             android:name=".CEOMainActivity"
             android:exported="true" />
+        <activity android:name=".CEOReviewActivity"
+            android:exported="true"/>
         <activity
             android:name=".DetailActivity"
             android:exported="true" />
@@ -95,6 +97,7 @@
         <activity
             android:name=".NoteDetailsActivity"
             android:exported="true" />
+        <activity android:name=".ReplyActivity"/>
         <activity
             android:name=".LoginActivity"
             android:exported="true" />
@@ -104,6 +107,8 @@
         <activity
             android:name=".MainActivity"
             android:exported="true" />
+        <activity android:name=".UserReviewListActivity"
+            android:exported="true"/>
         <activity
             android:name=".SplashActivity"
             android:exported="true">

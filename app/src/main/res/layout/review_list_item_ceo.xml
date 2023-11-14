@@ -3,34 +3,37 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="16dp">
 
+    <!-- 제목 -->
     <TextView
-        android:id="@+id/title_text"
+        android:id="@+id/text_title_ceo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="16sp"
         android:textStyle="bold" />
 
+    <!-- 평점 -->
     <TextView
-        android:id="@+id/content_text"
-        android:layout_width="79dp"
+        android:id="@+id/text_rating_ceo"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:textSize="14sp"
+        android:textStyle="italic" />
+
+    <!-- 내용 -->
+    <TextView
+        android:id="@+id/text_content_ceo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:textSize="14sp" />
 
+    <!-- 리뷰 답글 -->
     <TextView
-        android:id="@+id/rating_text"
-        android:layout_width="82dp"
+        android:id="@+id/text_replies_ceo"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textSize="14sp" />
-
-    <TextView
-        android:id="@+id/reply_text"
-        android:layout_width="76dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textSize="14sp" />
+        android:textSize="14sp"
+        android:textStyle="italic" />
 
 </LinearLayout>

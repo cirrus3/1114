@@ -6,22 +6,34 @@ public class MarkerData {
     private String id;
     private String title;
     private String content;
-    private HashMap<String, String> openingHours; // 요일별 영업 시간을 저장하는 HashMap
+    private String openingTime; // 오픈 시간
+    private String closingTime; // 마감 시간
+
+    private HashMap<String, String> openingHours;
+    private String registrationDate; // 등록 날짜
+    private String userId; // 사용자 ID
     private double latitude;
     private double longitude;
+    private String email; // 사용자 이메일
+    private float rating; // 평점
 
-    private String email; // 마커 등록자의 이메일 정보
     public MarkerData() {
         // Default constructor required for Firebase
     }
 
-    public MarkerData(String id, String title, String content, HashMap<String, String> openingHours, double latitude, double longitude) {
+    public MarkerData(String id, String title, String content, String openingTime, String closingTime,
+                      String registrationDate, String userId, double latitude, double longitude, String email, float rating) {
         this.id = id;
         this.title = title;
         this.content = content;
-        this.openingHours = openingHours;
+        this.openingTime = openingTime;
+        this.closingTime = closingTime;
+        this.registrationDate = registrationDate;
+        this.userId = userId;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.email = email;
+        this.rating = rating;
     }
 
     public String getId() {
@@ -44,8 +56,20 @@ public class MarkerData {
         this.content = content;
     }
 
-    public HashMap<String, String> getOpeningHours() {
-        return openingHours;
+    public String getOpeningTime() {
+        return openingTime;
+    }
+
+    public String getClosingTime() {
+        return closingTime;
+    }
+
+    public String getRegistrationDate() {
+        return registrationDate;
+    }
+
+    public String getUserId() {
+        return userId;
     }
 
     public double getLatitude() {
@@ -55,11 +79,24 @@ public class MarkerData {
     public double getLongitude() {
         return longitude;
     }
+
     public String getEmail() {
         return email;
     }
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public float getRating() {
+        return rating;
+    }
+
+    public HashMap<String, String> getOpeningHours() {
+        return openingHours;
+    }
+
+    public void setRating(float rating) {
+        this.rating = rating;
     }
 }

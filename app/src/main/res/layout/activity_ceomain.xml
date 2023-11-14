@@ -148,6 +148,20 @@
       app:layout_constraintStart_toStartOf="@+id/guideline3"
       app:layout_constraintTop_toTopOf="@+id/guideline4" />
 
+  <ImageButton
+      android:id="@+id/ceo_review"
+      android:layout_width="86dp"
+      android:layout_height="64dp"
+      android:layout_marginStart="8dp"
+      android:layout_marginTop="92dp"
+      android:backgroundTint="@android:color/black"
+      android:contentDescription="하고 싶은 설명"
+      android:padding="0sp"
+      android:scaleType="centerCrop"
+      android:src="@drawable/review_button"
+      app:layout_constraintStart_toStartOf="@+id/guideline"
+      app:layout_constraintTop_toTopOf="@+id/guideline4" />
+
   <androidx.constraintlayout.widget.Barrier
       android:id="@+id/barrier2"
       android:layout_width="wrap_content"

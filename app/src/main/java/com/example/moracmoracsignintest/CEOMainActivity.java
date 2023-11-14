@@ -33,6 +33,7 @@ public class CEOMainActivity extends AppCompatActivity {
     ImageButton menuBtn;
     ImageButton gps;
     ImageButton menu_button;
+    ImageButton ceoReviewButton;
 
     FirebaseDatabase database;
     DatabaseReference reference;
@@ -49,8 +50,6 @@ public class CEOMainActivity extends AppCompatActivity {
         signupCategory = findViewById(R.id.signupcategory);
 
         showData();
-        //showDataorigin();
-        //showData2();
         menuBtn = findViewById(R.id.menu_btn);
         menuBtn.setOnClickListener((v) -> showMenu());
 
@@ -91,6 +90,20 @@ public class CEOMainActivity extends AppCompatActivity {
             }
         });
 
+        ceoReviewButton = findViewById(R.id.ceo_review);
+        ceoReviewButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(CEOMainActivity.this, CEOReviewActivity.class);
+                // store data 정보 전달
+                intent.putExtra("ceoName", signupCeoname.getText().toString());
+                intent.putExtra("phoneNum", signupPhonenum.getText().toString());
+                intent.putExtra("storeName", signupStorename.getText().toString());
+                intent.putExtra("htPay", signupHtpay.getText().toString());
+                intent.putExtra("cateGory", signupCategory.getText().toString());
+                startActivity(intent);
+            }
+        });
     }
 
     void showMenu() {
@@ -121,27 +134,21 @@ public class CEOMainActivity extends AppCompatActivity {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             String userID = user.getEmail();
-            // userId를 사용하여 필요한 작업 수행
-            String email = userID;
-
-            email = email.replace(".com", "_com");
+            String email = userID.replace(".com", "_com");
             DatabaseReference reference = FirebaseDatabase.getInstance().getReference("store data");
 
             Query query = reference.orderByChild("id").equalTo(email);
-
 
             query.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                     for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                        // 데이터를 읽어오는 로직을 작성합니다.
                         String ceoName = snapshot.child("ceoname").getValue(String.class);
                         String phoneNum = snapshot.child("phonenum").getValue(String.class);
                         String storeName = snapshot.child("storename").getValue(String.class);
                         String htPay = snapshot.child("htpay").getValue(String.class);
                         String cateGory = snapshot.child("category").getValue(String.class);
 
-                        // 읽어온 데이터를 활용하여 작업을 수행합니다.
                         signupCeoname.setText(ceoName);
                         signupPhonenum.setText(phoneNum);
                         signupStorename.setText(storeName);
@@ -155,87 +162,6 @@ public class CEOMainActivity extends AppCompatActivity {
                     // 데이터 읽기 작업이 취소된 경우의 처리를 수행합니다.
                 }
             });
-
-
-
         }
-
-
-
     }
-
-
-    public void showDataorigin() {
-
-        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("store data");
-        ValueEventListener valueEventListener = new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                        // 데이터를 읽어오는 로직을 작성합니다.
-                        String ceoName = snapshot.child("ceoname").getValue(String.class);
-                        String phoneNum = snapshot.child("phonenum").getValue(String.class);
-                        String storeName = snapshot.child("storename").getValue(String.class);
-                        String htPay = snapshot.child("htpay").getValue(String.class);
-                        String cateGory = snapshot.child("category").getValue(String.class);
-
-                        // 읽어온 데이터를 활용하여 작업을 수행합니다.
-                        signupCeoname.setText(ceoName);
-                        signupPhonenum.setText(phoneNum);
-                        signupStorename.setText(storeName);
-                        signupHtpay.setText(htPay);
-                        signupCategory.setText(cateGory);
-                    }
-                }
-
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-                    // 데이터 읽기 작업이 취소된 경우의 처리를 수행합니다.
-                }
-            };
-
-            reference.addValueEventListener(valueEventListener);
-    }
-    public void showData2() {
-        // 데이터베이스 레퍼런스 설정
-        database = FirebaseDatabase.getInstance();
-        reference = database.getReference("store data");
-
-// 현재 로그인된 사용자의 ID 가져오기
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null) {
-            String userID = user.getUid();
-            String id = userID;
-
-            reference.child(id).addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    if (dataSnapshot.exists()) {
-                        // 데이터를 읽어오는 로직을 작성합니다.
-                        String ceoName = dataSnapshot.child("ceoname").getValue(String.class);
-                        String phoneNum = dataSnapshot.child("phonenum").getValue(String.class);
-                        String storeName = dataSnapshot.child("storename").getValue(String.class);
-                        String htPay = dataSnapshot.child("htpay").getValue(String.class);
-                        String cateGory = dataSnapshot.child("category").getValue(String.class);
-
-                        // 읽어온 데이터를 활용하여 작업을 수행합니다.
-                        signupCeoname.setText(ceoName);
-                        signupPhonenum.setText(phoneNum);
-                        signupStorename.setText(storeName);
-                        signupHtpay.setText(htPay);
-                        signupCategory.setText(cateGory);
-                    } else {
-                        // 데이터가 존재하지 않는 경우 처리를 수행합니다.
-                    }
-                }
-
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-                    // 데이터 읽기 작업이 취소된 경우의 처리를 수행합니다.
-                }
-            });
-        }
-
-    }
-
 }

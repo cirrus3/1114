@@ -1,15 +1,16 @@
 package com.example.moracmoracsignintest;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -19,129 +20,98 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.dynamiclinks.DynamicLink;
-import com.google.firebase.dynamiclinks.FirebaseDynamicLinks;
-import com.google.firebase.dynamiclinks.PendingDynamicLinkData;
-import com.google.firebase.dynamiclinks.ShortDynamicLink;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserMenuActivity extends AppCompatActivity {
 
-    public DatabaseReference mDatabase;
+    private DatabaseReference databaseReference;
+    private ValueEventListener eventListener;
+    private RecyclerView recyclerView;
+    private List<DataClass> dataList;
+    private MyAdapterUser adapter;
 
-    public String id;
+    private ImageButton reviewButton;
+    private Button favoriteButton;
+    private TextView userCeoname, userPhonenum, userStorename, userHtpay, userCategory;
+    private ImageView imageView;
+    private ImageView shareIcon;
 
-    DatabaseReference databaseReference;
-    ValueEventListener eventListener;
-    RecyclerView recyclerView;
-    List<DataClass> dataList;
-    MyAdapterUser adapter;
+    private SharedPreferences sharedPreferences;
+    private FirebaseAuth firebaseAuth;
+    private static final String PREF_SELECTED_STORE_NAME_KEY = "selected_store_name";
+    private static final String PREF_IS_FAVORITE_KEY = "is_favorite";
 
-    ImageButton review_btn;
+    private DatabaseReference favoritesRef;
+    private boolean isFavorite = false;
 
-    TextView userCeoname, userPhonenum, userStorename, userHtpay, userCategory;
-    //이미지추가
-    ImageView imageView;
-    //공유하기
-    ImageView shareicon;
-
+    private String userEmail;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_menu);
 
-        FirebaseDynamicLinks.getInstance()
-                .getDynamicLink(getIntent())
-                .addOnSuccessListener(this, new OnSuccessListener<PendingDynamicLinkData>() {
-                    @Override
-                    public void onSuccess(PendingDynamicLinkData pendingDynamicLinkData) {
-                        Uri deepLink = null;
-                        try {
-                            if (pendingDynamicLinkData != null) {
-                                deepLink = pendingDynamicLinkData.getLink();
-                                // 딥 링크 처리 메서드 호출
-                                handleDeepLink(deepLink);
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                })
-                .addOnFailureListener(this, new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.d("링크/에러", String.valueOf(e));
-                    }
-                });
-
-
-        //intent로 title 값 받기
-        //Intent intent = getIntent();
-        //String title = intent.getStringExtra("title");
-
-        //intent로 id 값 받기
-        Intent intent = getIntent();
-        String gid = intent.getStringExtra("id");
+        sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+        firebaseAuth = FirebaseAuth.getInstance();
+        favoritesRef = FirebaseDatabase.getInstance().getReference("favorites");
 
         userCeoname = findViewById(R.id.userceoname);
         userPhonenum = findViewById(R.id.userphonenum);
         userStorename = findViewById(R.id.userstorename);
         userHtpay = findViewById(R.id.userhtpay);
         userCategory = findViewById(R.id.usercategory);
-        review_btn = findViewById(R.id.review_btn);
-        //이미지 추가
+        reviewButton = findViewById(R.id.review_btn);
+        favoriteButton = findViewById(R.id.favorite_button);
         imageView = findViewById(R.id.storeimgorigin);
-        //공유하기 추가
-        shareicon = findViewById(R.id.shareicon);
+        shareIcon = findViewById(R.id.shareicon);
 
-        review_btn.setOnClickListener(new View.OnClickListener() {
+        reviewButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(UserMenuActivity.this, StoreReviewListActivity.class);
+                intent.putExtra("EXTRA_SELECTED_STORE_NAME", userStorename.getText().toString());
+
+                // 추가: 가게 이름을 SharedPreferences에 저장
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString(PREF_SELECTED_STORE_NAME_KEY, userStorename.getText().toString());
+                editor.apply();
+
                 startActivity(intent);
             }
         });
 
-        //공유하기 버튼 눌렀을 때
-        shareicon.setOnClickListener(new View.OnClickListener() {
+        shareIcon.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 createDynamicLink();
             }
         });
 
-        //핵심
+        Intent intent = getIntent();
+        String gid = intent.getStringExtra("id");
+        userEmail = firebaseAuth.getCurrentUser().getEmail();
+
         DatabaseReference reference1 = FirebaseDatabase.getInstance().getReference("markers");
         Query query1 = reference1.orderByChild("content").equalTo(gid);
 
         query1.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                //String cont = snapshot.child("id").getValue(String.class);
-                //Log.v("showDatacont", "cont: " +cont);
                 if (snapshot.exists()) {
-                    // 첫 번째 매칭된 데이터 스냅샷을 가져옵니다
                     DataSnapshot firstMatchSnapshot = snapshot.getChildren().iterator().next();
-
-                    // 해당 데이터의 id 값을 가져옵니다
-                    id = firstMatchSnapshot.child("id").getValue(String.class);
-                    Log.v("idValue", "id : " + id);
-                    showData(id); //title값 받아오기
-
+                    String id = firstMatchSnapshot.child("id").getValue(String.class);
+                    showData(id);
                     recyclerView = findViewById(R.id.recyclerView);
-
                     GridLayoutManager gridLayoutManager = new GridLayoutManager(UserMenuActivity.this, 1);
                     recyclerView.setLayoutManager(gridLayoutManager);
 
@@ -179,170 +149,170 @@ public class UserMenuActivity extends AppCompatActivity {
                         }
                     });
                 } else {
-                    // 매칭된 데이터가 없는 경우 처리
-                    Log.v("idValue", "No data found with content 'Hotdog'");
+                    // Handle the case when store information is not found.
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-
+                // Handle errors.
             }
         });
 
+        favoriteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isFavorite) {
+                    removeFromFavorites();
+                } else {
+                    addToFavorites();
+                }
+            }
+        });
 
-
-
-
+        isFavorite = sharedPreferences.getBoolean(PREF_IS_FAVORITE_KEY, false);
+        updateFavoriteButton();
     }
 
     public void showData(String id) {
-
-
-
         DatabaseReference reference = FirebaseDatabase.getInstance().getReference("store data");
 
-        //Log.v("showDatatitle", "title : " + title);
-        //Query query = reference.orderByChild("title").equalTo(title);//쿼리문
-
-        Log.v("showDataid", "id : " + id);
-        Query query = reference.orderByChild("id").equalTo(id);//쿼리문
+        Query query = reference.orderByChild("id").equalTo(id);
         ValueEventListener valueEventListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-
-                // 기존 데이터를 지우고 새로 받아오기 위해 데이터를 초기화하는 과정은 필요할까?
                 userCeoname.setText("");
                 userPhonenum.setText("");
-                userStorename.setText("");
+                userStorename.setText(""); // 기존 가게 이름 초기화
                 userHtpay.setText("");
                 userCategory.setText("");
 
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    // 데이터를 읽어오는 로직을 작성합니다.
                     String ceoName = snapshot.child("ceoname").getValue(String.class);
                     String phoneNum = snapshot.child("phonenum").getValue(String.class);
                     String storeName = snapshot.child("storename").getValue(String.class);
                     String htPay = snapshot.child("htpay").getValue(String.class);
                     String cateGory = snapshot.child("category").getValue(String.class);
-                    // 이미지 URL 가져오기
                     String imageUrl = snapshot.child("dataImage").getValue(String.class);
 
-                    // 읽어온 데이터를 활용하여 작업을 수행합니다.
                     userCeoname.setText(ceoName);
                     userPhonenum.setText(phoneNum);
-                    userStorename.setText(storeName);
+                    userStorename.setText(storeName); // 새로운 가게 이름 설정
                     userHtpay.setText(htPay);
                     userCategory.setText(cateGory);
-                    // 이미지 가져오기
                     Glide.with(UserMenuActivity.this).load(imageUrl).into(imageView);
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                // 데이터 읽기 작업이 취소된 경우의 처리를 수행합니다.
+                // Handle errors.
             }
         };
 
         query.addValueEventListener(valueEventListener);
     }
-    public void Create_DynamicLink(String PageURL, String ImgUrl){
-        Task<ShortDynamicLink> shortLinkTask = FirebaseDynamicLinks.getInstance().createDynamicLink()
-                .setLink(Uri.parse(PageURL))
-                .setDomainUriPrefix("https://moracmoracsignintest")
-                .setAndroidParameters(
-                        new DynamicLink.AndroidParameters.Builder(getPackageName())
-                                .build())
-                .setSocialMetaTagParameters(
-                        new DynamicLink.SocialMetaTagParameters.Builder()
-                                .setTitle("친구에게 공유하기 테스트해볼까?")
-                                .setImageUrl(Uri.parse(ImgUrl))
-                                .build())
-                .buildShortDynamicLink()
-                .addOnCompleteListener(this, new OnCompleteListener<ShortDynamicLink>() {
+
+
+    private void addToFavorites() {
+        if (firebaseAuth.getCurrentUser() == null) {
+            Toast.makeText(this, "사용자가 로그인되어 있지 않습니다.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String storeName = userStorename.getText().toString();
+
+        String firebasePath = getFirebasePath(userEmail);
+
+        DatabaseReference userRef = favoritesRef.child(firebasePath).child(storeName);
+
+        userRef.setValue(true)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
-                    public void onComplete(@NonNull Task<ShortDynamicLink> task) {
+                    public void onComplete(Task<Void> task) {
                         if (task.isSuccessful()) {
-                            Uri ShortLink = task.getResult().getShortLink();
-                            try {
-                                Intent Sharing_Intent = new Intent();
-                                Sharing_Intent.setAction(Intent.ACTION_SEND);
-                                //Sharing_Intent.putExtra(Intent.EXTRA_SUBJECT, subject);
-                                Sharing_Intent.putExtra(Intent.EXTRA_TEXT, ShortLink.toString());
-                                Sharing_Intent.setType("text/plain");
-                                startActivity(Intent.createChooser(Sharing_Intent, "친구에게 공유하기"));
-                            }
-                            catch (Exception e) {
-                            }
+                            Toast.makeText(UserMenuActivity.this, "찜 목록에 가게가 추가되었습니다.", Toast.LENGTH_SHORT).show();
+                            isFavorite = true;
+                            updateFavoriteButton();
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            editor.putBoolean(PREF_IS_FAVORITE_KEY, true);
+                            editor.apply();
+                        } else {
+                            Toast.makeText(UserMenuActivity.this, "찜 목록에 가게를 추가하는데 실패했습니다.", Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
     }
-    public void createDynamicLink() {
-        FirebaseDynamicLinks.getInstance().createDynamicLink()
-                .setLink(Uri.parse("https://www.naver.com/"))
-                .setDomainUriPrefix("https://moracmoracsignintest.page.link")
-                .setAndroidParameters(new DynamicLink.AndroidParameters.Builder().setFallbackUrl(Uri.parse("YOUR_FALLBACK_URL")).build())
-                .setSocialMetaTagParameters(
-                        new DynamicLink.SocialMetaTagParameters.Builder()
 
-                                .setTitle("모락 모락")
-                                .setDescription("푸드트럭 정보 안내 앱")
-                                .build())
-                .buildShortDynamicLink()
-                .addOnSuccessListener(new OnSuccessListener<ShortDynamicLink>() {
+    private void removeFromFavorites() {
+        if (firebaseAuth.getCurrentUser() == null) {
+            Toast.makeText(this, "사용자가 로그인되어 있지 않습니다.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String storeName = userStorename.getText().toString();
+        String firebasePath = getFirebasePath(userEmail);
+
+        DatabaseReference userRef = favoritesRef.child(firebasePath).child(storeName);
+
+        userRef.removeValue()
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
-                    public void onSuccess(ShortDynamicLink shortDynamicLink) {
-                        Uri shortLink = shortDynamicLink.getShortLink();
-                        createShareContent(shortLink);
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(UserMenuActivity.this, "공유 실패", Toast.LENGTH_SHORT).show();
+                    public void onComplete(Task<Void> task) {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(UserMenuActivity.this, "찜 목록에서 가게가 제거되었습니다.", Toast.LENGTH_SHORT).show();
+                            isFavorite = false;
+                            updateFavoriteButton();
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            editor.putBoolean(PREF_IS_FAVORITE_KEY, false);
+                            editor.apply();
+                        } else {
+                            Toast.makeText(UserMenuActivity.this, "찜 목록에서 가게를 제거하는데 실패했습니다.", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 });
     }
 
-    public void createShareContent(Uri dynamicLink) {
-        Intent sendIntent = new Intent();
-        sendIntent.setAction(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_TEXT, dynamicLink.toString()); // 동적 링크를 공유 메시지로 설정
-        sendIntent.setType("text/plain");
-
-        Intent shareIntent = Intent.createChooser(sendIntent, "공유하기");
-        startActivity(shareIntent);
+    private String getFirebasePath(String userEmail) {
+        return userEmail.replaceAll("[.#$\\[\\]]", "_");
     }
 
-    private void handleDeepLink(Uri deepLink) {
-        // 여기에서 딥 링크에 대한 처리를 진행합니다.
-        // 예를 들어, 딥 링크에서 필요한 정보를 추출하거나 특정 화면으로 이동하는 등의 작업을 수행할 수 있습니다.
-        // 현재 페이지로 이동하는 코드 예시:
-        Intent intent = new Intent(this, MapsActivity.class);
-        //Intent intent = new Intent(this, UserMenuActivity.class);
-        //Intent intent1 = getIntent();
-        //String id = intent1.getStringExtra("gid");
-        //intent.putExtra("id", id);
-        startActivity(intent);
-        // 딥 링크에서 쿼리 파라미터를 가져오기
-        String itemId = deepLink.getQueryParameter("item_id");
-        String itemName = deepLink.getQueryParameter("item_name");
+    private void updateFavoriteButton() {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean(PREF_IS_FAVORITE_KEY, isFavorite);
+        editor.apply();
 
-
-        if (itemId != null && itemName != null) {
-            // 쿼리 파라미터 정보를 로그로 출력
-            Log.d("DeepLink", "Received item ID: " + itemId);
-            Log.d("DeepLink", "Received item name: " + itemName);
-
-            // 가져온 정보를 화면에 표시
-            Toast.makeText(this, "Received item ID: " + itemId + "\nReceived item name: " + itemName, Toast.LENGTH_LONG).show();
+        if (isFavorite) {
+            favoriteButton.setText("찜 해제");
         } else {
-            // 쿼리 파라미터가 없는 경우
-            Log.d("DeepLink", "No valid query parameters found in the deep link.");
+            favoriteButton.setText("찜하기");
         }
     }
 
+    public void createDynamicLink() {
+        Uri deepLink = Uri.parse("https://example.com/deeplink");
 
+        createShareContent(deepLink);
+    }
+
+    public void createShareContent(Uri deepLink) {
+        String storeName = userStorename.getText().toString();
+        String shareText = "모락 모락 앱을 통해 " + storeName + "의 정보를 확인해보세요! " + deepLink.toString();
+
+        Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+        sendIntent.setType("text/plain");
+
+        Intent shareIntent = Intent.createChooser(sendIntent, null);
+        startActivity(shareIntent);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (eventListener != null && databaseReference != null) {
+            databaseReference.removeEventListener(eventListener);
+        }
+    }
 }

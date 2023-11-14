@@ -22,12 +22,6 @@
             android:textSize="24sp"
             android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/favorite_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="찜하기" />
-
     </LinearLayout>
 
     <ListView
@@ -41,12 +35,4 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="리뷰 작성" />
-
-    <Button
-        android:id="@+id/go_to_favorites_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:text="찜 목록으로 이동" />
-
 </LinearLayout>
