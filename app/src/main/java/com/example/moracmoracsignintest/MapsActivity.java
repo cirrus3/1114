@@ -86,10 +86,24 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         for (DataSnapshot markerSnapshot : snapshot.getChildren()) {
                             String idid = markerSnapshot.child("content").getValue(String.class);
+                            String openingTime = markerSnapshot.child("openingTime").getValue(String.class);
+                            String closingTime = markerSnapshot.child("closingTime").getValue(String.class);
+                            String registrationDate = markerSnapshot.child("registrationDate").getValue(String.class);
+
                             if (idid != null) {
                                 markerId = idid;
+                                dialogMessage.append("오픈 시간: ").append(openingTime).append("\n");
+                                dialogMessage.append("마감 시간: ").append(closingTime).append("\n");
+                                dialogMessage.append("영업 날짜: ").append(registrationDate).append("\n");
                             }
                         }
+
+                        // Set the message after fetching additional data
+//                        dialogBuilder.setMessage(dialogMessage.toString());
+//
+//                        // Create and show the AlertDialog
+//                        AlertDialog alertDialog = dialogBuilder.create();
+//                        alertDialog.show();
                     }
 
                     @Override
@@ -98,23 +112,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
                 });
 
-                Object tag = marker.getTag();
-                if (tag instanceof HashMap) {
-                    HashMap<String, String> openingHours = (HashMap<String, String>) tag;
-                    StringBuilder openingHoursText = new StringBuilder("영업 시간:\n");
-                    String[] daysOfWeek = {"월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"};
-                    boolean hasOpeningHours = false;
-                    for (String day : daysOfWeek) {
-                        if (openingHours.containsKey(day) && !openingHours.get(day).isEmpty()) {
-                            String hours = openingHours.get(day);
-                            openingHoursText.append(day).append(": ").append(hours).append("\n");
-                            hasOpeningHours = true;
-                        }
-                    }
-                    if (hasOpeningHours) {
-                        dialogMessage.append(openingHoursText.toString());
-                    }
-                }
+
 
                 DatabaseReference reviewsRef = FirebaseDatabase.getInstance().getReference("store_reviews");
                 Query reviewsQuery = reviewsRef.orderByChild("storeName").equalTo(marker.getTitle());
@@ -302,8 +300,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                         for (MarkerData markerData : markerList) {
                             LatLng location = new LatLng(markerData.getLatitude(), markerData.getLongitude());
-                            BitmapDescriptor storeIcon = BitmapDescriptorFactory.fromResource(R.drawable.store);
 
+
+                            BitmapDescriptor storeIcon = resizeStoreImage(64, 64, R.drawable.store);
                             Marker marker = mMap.addMarker(new MarkerOptions()
                                     .position(location)
                                     .title(markerData.getTitle())

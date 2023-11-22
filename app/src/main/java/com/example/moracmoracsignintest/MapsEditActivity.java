@@ -172,21 +172,29 @@ public class MapsEditActivity extends AppCompatActivity implements OnMapReadyCal
                         .snippet(content + "\nOpening Hours: " + openingTime + " - " + closingTime + "\nRegistration Date: " + registrationDate));
 
                 // Save marker information to the Realtime Database with the current user's ID
-                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("markers");
-                DatabaseReference newMarkerRef = databaseReference.push();
-                newMarkerRef.child("latitude").setValue(latLng.latitude);
-                newMarkerRef.child("longitude").setValue(latLng.longitude);
-                newMarkerRef.child("title").setValue(name);
-                newMarkerRef.child("content").setValue(content);
-                newMarkerRef.child("openingTime").setValue(openingTime);
-                newMarkerRef.child("closingTime").setValue(closingTime);
-                newMarkerRef.child("registrationDate").setValue(registrationDate);
-                newMarkerRef.child("userId").setValue(currentUserId);
+                //맨 아래 id 유저 이메일_로 저장
+                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                if(user!= null) {
+                    String userEmail = user.getEmail();
+                    String markerKey = userEmail.replace(".", "_");
 
-                Toast.makeText(MapsEditActivity.this, "푸드트럭 등록완료", Toast.LENGTH_SHORT).show();
+                    DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("markers");
+                    DatabaseReference newMarkerRef = databaseReference.push();
+                    newMarkerRef.child("latitude").setValue(latLng.latitude);
+                    newMarkerRef.child("longitude").setValue(latLng.longitude);
+                    newMarkerRef.child("title").setValue(name);
+                    newMarkerRef.child("content").setValue(content);
+                    newMarkerRef.child("openingTime").setValue(openingTime);
+                    newMarkerRef.child("closingTime").setValue(closingTime);
+                    newMarkerRef.child("registrationDate").setValue(registrationDate);
+                    newMarkerRef.child("id").setValue(markerKey); //currentUserId에서 markerKey로 수정
 
-                // Move the camera to the clicked location
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f));
+                    Toast.makeText(MapsEditActivity.this, "푸드트럭 등록완료", Toast.LENGTH_SHORT).show();
+
+                    // Move the camera to the clicked location
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f));
+
+                }
             }
         });
 

@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -20,6 +21,8 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -28,38 +31,85 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.dynamiclinks.DynamicLink;
+import com.google.firebase.dynamiclinks.FirebaseDynamicLinks;
+import com.google.firebase.dynamiclinks.PendingDynamicLinkData;
+import com.google.firebase.dynamiclinks.ShortDynamicLink;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserMenuActivity extends AppCompatActivity {
 
+    public DatabaseReference mDatabase; //지웠던거
+
+    public String id; //지웠던거
+
+    //public String rid; //다이나믹링크
     private DatabaseReference databaseReference;
     private ValueEventListener eventListener;
     private RecyclerView recyclerView;
     private List<DataClass> dataList;
     private MyAdapterUser adapter;
 
-    private ImageButton reviewButton;
-    private Button favoriteButton;
+    private ImageButton reviewButton; //리뷰 버튼 바뀜
+    private Button favoriteButton; //즐겨찾기 버튼
     private TextView userCeoname, userPhonenum, userStorename, userHtpay, userCategory;
     private ImageView imageView;
     private ImageView shareIcon;
 
-    private SharedPreferences sharedPreferences;
-    private FirebaseAuth firebaseAuth;
-    private static final String PREF_SELECTED_STORE_NAME_KEY = "selected_store_name";
-    private static final String PREF_IS_FAVORITE_KEY = "is_favorite";
+    private SharedPreferences sharedPreferences; //ch
+    private FirebaseAuth firebaseAuth;//ch
+    private static final String PREF_SELECTED_STORE_NAME_KEY = "selected_store_name";//ch
+    private static final String PREF_IS_FAVORITE_KEY = "is_favorite";//ch
 
-    private DatabaseReference favoritesRef;
-    private boolean isFavorite = false;
+    private DatabaseReference favoritesRef;//ch
+    private boolean isFavorite = false;//ch
 
-    private String userEmail;
+    private String userEmail;//ch
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_menu);
+
+
+        //다이나믹링크 지워진 것 추가함
+        FirebaseDynamicLinks.getInstance()
+                .getDynamicLink(getIntent())
+                .addOnSuccessListener(this, new OnSuccessListener<PendingDynamicLinkData>() {
+                    @Override
+                    public void onSuccess(PendingDynamicLinkData pendingDynamicLinkData) {
+                        Uri deepLink = null;
+                        try {
+                            if (pendingDynamicLinkData != null) {
+                                deepLink = pendingDynamicLinkData.getLink();
+                                //딥 링크 처리 메서드 호출
+                                handleDeepLink(deepLink);
+
+                                String recontent = handleDeepLink(deepLink);
+                                //recontent오는지
+                                Log.d("MainActivity", "recontent from deep link: " + recontent);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            //다른 화면으로 가도록 추가해보기
+                        }
+                    }
+                })
+                .addOnFailureListener(this, new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.d("링크/에러", String.valueOf(e));
+                    }
+                });
+
+        //intent로 id 값 받기
+        Intent intent = getIntent();
+        String gid = intent.getStringExtra("id");
+        String rid = gid; //다이나믹 링크로 넘겨줌
+        Log.v("gidValue", "gid + "+ gid);
+
 
         sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
         firebaseAuth = FirebaseAuth.getInstance();
@@ -70,11 +120,16 @@ public class UserMenuActivity extends AppCompatActivity {
         userStorename = findViewById(R.id.userstorename);
         userHtpay = findViewById(R.id.userhtpay);
         userCategory = findViewById(R.id.usercategory);
+        //리뷰버튼 추가
         reviewButton = findViewById(R.id.review_btn);
+        //즐겨찾기버튼 추가
         favoriteButton = findViewById(R.id.favorite_button);
+        //이미지 추가
         imageView = findViewById(R.id.storeimgorigin);
+        //공유하기 추가
         shareIcon = findViewById(R.id.shareicon);
 
+        //리뷰 버튼 눌렀을 때
         reviewButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -90,28 +145,32 @@ public class UserMenuActivity extends AppCompatActivity {
             }
         });
 
+        //공유하기 버튼 눌렀을 때
         shareIcon.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                createDynamicLink();
+                createDynamicLink(rid);
             }
         });
 
-        Intent intent = getIntent();
-        String gid = intent.getStringExtra("id");
+
         userEmail = firebaseAuth.getCurrentUser().getEmail();
 
         DatabaseReference reference1 = FirebaseDatabase.getInstance().getReference("markers");
-        Query query1 = reference1.orderByChild("content").equalTo(gid);
+        Query query1 = reference1.orderByChild("content").equalTo(gid).limitToLast(1);
 
         query1.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
-                    DataSnapshot firstMatchSnapshot = snapshot.getChildren().iterator().next();
-                    String id = firstMatchSnapshot.child("id").getValue(String.class);
+                    DataSnapshot lastMatchSnapshot = snapshot.getChildren().iterator().next();
+
+                    id = lastMatchSnapshot.child("id").getValue(String.class);
+                    Log.v("idValue1", "id : " + id);
                     showData(id);
+
                     recyclerView = findViewById(R.id.recyclerView);
+
                     GridLayoutManager gridLayoutManager = new GridLayoutManager(UserMenuActivity.this, 1);
                     recyclerView.setLayoutManager(gridLayoutManager);
 
@@ -150,6 +209,7 @@ public class UserMenuActivity extends AppCompatActivity {
                     });
                 } else {
                     // Handle the case when store information is not found.
+                    Log.v("idValue1", "No data found with content 'Hotdog'");
                 }
             }
 
@@ -177,6 +237,7 @@ public class UserMenuActivity extends AppCompatActivity {
     public void showData(String id) {
         DatabaseReference reference = FirebaseDatabase.getInstance().getReference("store data");
 
+        Log.v("showDataid", "id : " + id);
         Query query = reference.orderByChild("id").equalTo(id);
         ValueEventListener valueEventListener = new ValueEventListener() {
             @Override
@@ -212,7 +273,6 @@ public class UserMenuActivity extends AppCompatActivity {
 
         query.addValueEventListener(valueEventListener);
     }
-
 
     private void addToFavorites() {
         if (firebaseAuth.getCurrentUser() == null) {
@@ -289,23 +349,83 @@ public class UserMenuActivity extends AppCompatActivity {
         }
     }
 
-    public void createDynamicLink() {
-        Uri deepLink = Uri.parse("https://example.com/deeplink");
+    //변수까지 자세히 봐야함 교묘하게 바꿔버림
+    public void createDynamicLink(String rid) {
+        FirebaseDynamicLinks.getInstance().createDynamicLink()
+                //파라미터 생성
+                //.setLink(Uri.parse("https://moracmorac?getc=" +  rid))
+                .setLink(Uri.parse("https://www.mmu.ac.kr/S1/board/78/read/76403")) //기본링크
+                .setDomainUriPrefix("https://moracmoracsignintest.page.link") //도메인
+                .setAndroidParameters(new DynamicLink.AndroidParameters.Builder().setFallbackUrl(Uri.parse("YOUR_FALLBACK_URL")).build()) //안드로이드 매개변수 설정
+                .setSocialMetaTagParameters(
+                        new DynamicLink.SocialMetaTagParameters.Builder()
+                                .setTitle("모락 모락")
+                                .setDescription("푸드트럭 정보 안내 앱")
+                                .build())
+                .setGoogleAnalyticsParameters(
+                        new DynamicLink.GoogleAnalyticsParameters.Builder()
+                                .setSource("campaign-2023")
+                                .setMedium("social")
+                                .setCampaign("example-promo")
+                                .build())
+                .setNavigationInfoParameters(
+                        new DynamicLink.NavigationInfoParameters.Builder()
+                                .setForcedRedirectEnabled(true)
+                                .build())
 
-        createShareContent(deepLink);
+                //단축 동적링크 생성
+                .buildShortDynamicLink()
+                .addOnSuccessListener(new OnSuccessListener<ShortDynamicLink>() {
+                    @Override
+                    public void onSuccess(ShortDynamicLink shortDynamicLink) {
+                        // 성공하면 단축링크 생성
+                        Uri shortLink = shortDynamicLink.getShortLink();
+                        createShareContent(shortLink);
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.e("DynamicLink", "Dynamic link creation failed", e);
+                        Toast.makeText(UserMenuActivity.this, "공유 실패", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
-    public void createShareContent(Uri deepLink) {
-        String storeName = userStorename.getText().toString();
-        String shareText = "모락 모락 앱을 통해 " + storeName + "의 정보를 확인해보세요! " + deepLink.toString();
-
+    public void createShareContent(Uri dynamicLink) {
         Intent sendIntent = new Intent();
         sendIntent.setAction(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, dynamicLink.toString()); //동적 링크를 공유 메시지로 설정
         sendIntent.setType("text/plain");
 
-        Intent shareIntent = Intent.createChooser(sendIntent, null);
+        Intent shareIntent = Intent.createChooser(sendIntent, "공유하기");
         startActivity(shareIntent);
+    }
+
+    private String handleDeepLink(Uri deepLink) {
+        // 여기에서 딥 링크에 대한 처리를 진행합니다.
+        // 예를 들어, 딥 링크에서 필요한 정보를 추출하거나 특정 화면으로 이동하는 등의 작업을 수행할 수 있습니다.
+        // 현재 페이지로 이동하는 코드 예시:
+        Intent intent = new Intent(this, MapsActivity.class);
+        //Intent intent = new Intent(this, UserMenuActivity.class);
+        //Intent intent1 = getIntent();
+        //String id = intent1.getStringExtra("gid");
+        //intent.putExtra("id", id);
+        startActivity(intent);
+        // 딥 링크에서 쿼리 파라미터를 가져오기
+        String recontent = deepLink.getQueryParameter("getc");
+        // 로그로 디버깅 정보 출력
+        Log.d("getc", "Deep link handled. getc: " + recontent);
+
+        if (recontent != null) {
+            // 쿼리 파라미터 정보를 로그로 출력
+            Log.d("DeepLink", "Received item ID: " + recontent);
+        } else {
+            // 쿼리 파라미터가 없는 경우
+            Log.d("DeepLink", "No valid query parameters found in the deep link.");
+        }
+        
+        return recontent; //recontent값 반환
     }
 
     @Override

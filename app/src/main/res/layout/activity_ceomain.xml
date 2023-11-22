@@ -30,6 +30,7 @@
       android:layout_width="36dp"
       android:layout_height="36dp"
       android:layout_alignParentEnd="true"
+      android:layout_marginStart="332dp"
       android:background="?attr/selectableItemBackgroundBorderless"
       android:src="@drawable/ic_baseline_menu_24"
       app:layout_constraintBottom_toTopOf="@+id/guideline7"
@@ -37,15 +38,47 @@
       app:tint="@color/black" />
 
   <TextView
-      android:id="@+id/textView"
+      android:id="@+id/textView1"
       android:layout_width="109dp"
       android:layout_height="wrap_content"
-      android:layout_marginBottom="20dp"
-      android:text="전체 메뉴"
+      android:layout_marginBottom="16dp"
+      android:text="위치관리"
       android:textSize="24sp"
       android:textStyle="bold"
-      app:layout_constraintBottom_toTopOf="@+id/guideline4"
-      app:layout_constraintStart_toStartOf="@+id/guideline" />
+      app:layout_constraintBottom_toTopOf="@id/gps_button"
+      app:layout_constraintStart_toStartOf="@id/gps_button" />
+  <TextView
+      android:id="@+id/textView2"
+      android:layout_width="109dp"
+      android:layout_height="wrap_content"
+      android:layout_marginBottom="16dp"
+      android:text="공지관리"
+      android:textSize="24sp"
+      android:textStyle="bold"
+      app:layout_constraintBottom_toTopOf="@id/note_button"
+      app:layout_constraintStart_toStartOf="@id/note_button" />
+
+  <TextView
+      android:id="@+id/textView3"
+      android:layout_width="109dp"
+      android:layout_height="wrap_content"
+      android:layout_marginBottom="24dp"
+      android:text="리뷰관리"
+      android:textSize="24sp"
+      android:textStyle="bold"
+      app:layout_constraintBottom_toTopOf="@id/ceo_review"
+      app:layout_constraintStart_toStartOf="@id/ceo_review" />
+
+  <TextView
+      android:id="@+id/textView4"
+      android:layout_width="109dp"
+      android:layout_height="wrap_content"
+      android:layout_marginBottom="16dp"
+      android:text="메뉴관리"
+      android:textSize="24sp"
+      android:textStyle="bold"
+      app:layout_constraintBottom_toTopOf="@id/menu_button"
+      app:layout_constraintStart_toStartOf="@id/menu_button" />
 
   <TextView
       android:id="@+id/read_category"
@@ -107,6 +140,7 @@
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
 
+      android:layout_marginStart="96dp"
       android:contentDescription="수정 버튼"
       android:text="입력하기"
       app:layout_constraintStart_toStartOf="@+id/guideline3"
@@ -152,8 +186,8 @@
       android:id="@+id/ceo_review"
       android:layout_width="86dp"
       android:layout_height="64dp"
-      android:layout_marginStart="8dp"
-      android:layout_marginTop="92dp"
+      android:layout_marginStart="136dp"
+      android:layout_marginTop="8dp"
       android:backgroundTint="@android:color/black"
       android:contentDescription="하고 싶은 설명"
       android:padding="0sp"
@@ -173,21 +207,21 @@
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:orientation="vertical"
-      app:layout_constraintGuide_end="365dp" />
+      app:layout_constraintGuide_end="659dp" />
 
   <androidx.constraintlayout.widget.Guideline
       android:id="@+id/guideline2"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:orientation="vertical"
-      app:layout_constraintGuide_begin="162dp" />
+      app:layout_constraintGuide_begin="396dp" />
 
   <androidx.constraintlayout.widget.Guideline
       android:id="@+id/guideline3"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:orientation="vertical"
-      app:layout_constraintGuide_begin="287dp" />
+      app:layout_constraintGuide_begin="521dp" />
 
   <androidx.constraintlayout.widget.Barrier
       android:id="@+id/barrier3"
@@ -205,14 +239,14 @@
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:orientation="horizontal"
-      app:layout_constraintGuide_end="186dp" />
+      app:layout_constraintGuide_end="304dp" />
 
   <androidx.constraintlayout.widget.Guideline
       android:id="@+id/guideline8"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:orientation="horizontal"
-      app:layout_constraintGuide_begin="305dp" />
+      app:layout_constraintGuide_begin="439dp" />
   <!-- signupCeoname, signupPhonenum, signupStorename, signupHtpay, signupCategory-->
 
   <TextView
@@ -277,7 +311,7 @@
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:orientation="vertical"
-      app:layout_constraintGuide_begin="360dp" />
+      app:layout_constraintGuide_begin="352dp" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
