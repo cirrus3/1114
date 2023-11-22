@@ -365,4 +365,3 @@ public class MapsEditActivity extends AppCompatActivity implements OnMapReadyCal
         });
     }
 }
-

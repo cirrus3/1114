@@ -46,6 +46,7 @@ public class UserMenuActivity extends AppCompatActivity {
     public String id; //지웠던거
 
     //public String rid; //다이나믹링크
+    public String recontent = null;
     private DatabaseReference databaseReference;
     private ValueEventListener eventListener;
     private RecyclerView recyclerView;
@@ -104,11 +105,22 @@ public class UserMenuActivity extends AppCompatActivity {
                     }
                 });
 
-        //intent로 id 값 받기
+
         Intent intent = getIntent();
         String gid = intent.getStringExtra("id");
+
+        //다이나믹 링크로 들어오면 파라미터 값의 유무에 따라 달라짐
+        //intent로 rec 값 받기
+        if(gid == null) {
+            Intent intent2 = getIntent();
+            recontent = intent2.getStringExtra("rec");
+            Log.d("recontent", "recontent: " + recontent);
+            gid = recontent;
+        }
+
         String rid = gid; //다이나믹 링크로 넘겨줌
         Log.v("gidValue", "gid + "+ gid);
+        Log.v("ridValue", "rid + "+ gid);
 
 
         sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
@@ -351,10 +363,11 @@ public class UserMenuActivity extends AppCompatActivity {
 
     //변수까지 자세히 봐야함 교묘하게 바꿔버림
     public void createDynamicLink(String rid) {
+        Log.v("ridValue1", "rid + "+ rid);
         FirebaseDynamicLinks.getInstance().createDynamicLink()
                 //파라미터 생성
                 //.setLink(Uri.parse("https://moracmorac?getc=" +  rid))
-                .setLink(Uri.parse("https://www.mmu.ac.kr/S1/board/78/read/76403")) //기본링크
+                .setLink(Uri.parse("https://www.mmu.ac.kr/S1/board/78/read/76403?getc="+ rid)) //기본링크
                 .setDomainUriPrefix("https://moracmoracsignintest.page.link") //도메인
                 .setAndroidParameters(new DynamicLink.AndroidParameters.Builder().setFallbackUrl(Uri.parse("YOUR_FALLBACK_URL")).build()) //안드로이드 매개변수 설정
                 .setSocialMetaTagParameters(
@@ -406,12 +419,12 @@ public class UserMenuActivity extends AppCompatActivity {
         // 여기에서 딥 링크에 대한 처리를 진행합니다.
         // 예를 들어, 딥 링크에서 필요한 정보를 추출하거나 특정 화면으로 이동하는 등의 작업을 수행할 수 있습니다.
         // 현재 페이지로 이동하는 코드 예시:
-        Intent intent = new Intent(this, MapsActivity.class);
+
         //Intent intent = new Intent(this, UserMenuActivity.class);
         //Intent intent1 = getIntent();
         //String id = intent1.getStringExtra("gid");
         //intent.putExtra("id", id);
-        startActivity(intent);
+
         // 딥 링크에서 쿼리 파라미터를 가져오기
         String recontent = deepLink.getQueryParameter("getc");
         // 로그로 디버깅 정보 출력
@@ -420,6 +433,9 @@ public class UserMenuActivity extends AppCompatActivity {
         if (recontent != null) {
             // 쿼리 파라미터 정보를 로그로 출력
             Log.d("DeepLink", "Received item ID: " + recontent);
+            Intent intent = new Intent(this, UserMenuActivity.class);
+            intent.putExtra("rec", recontent);
+            startActivity(intent);
         } else {
             // 쿼리 파라미터가 없는 경우
             Log.d("DeepLink", "No valid query parameters found in the deep link.");
