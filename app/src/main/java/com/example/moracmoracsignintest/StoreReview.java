@@ -2,26 +2,26 @@ package com.example.moracmoracsignintest;
 
 public class StoreReview {
     private String storeName;
-    private int rating;
-    // 다른 필드도 추가할 수 있음
+    private double averageRating;
 
     public StoreReview() {
-        // Default constructor required for calls to DataSnapshot.getValue(StoreReview.class)
+        // Firebase에서 객체를 읽어올 때 필요한 기본 생성자
     }
 
-    public StoreReview(String storeName, int rating) {
+    public StoreReview(String storeName, double averageRating) {
         this.storeName = storeName;
-        this.rating = rating;
-        // 다른 필드 초기화
+        this.averageRating = averageRating;
     }
 
     public String getStoreName() {
         return storeName;
     }
 
-    public int getRating() {
-        return rating;
+    public double getAverageRating() {
+        return averageRating;
     }
 
-    // 다른 필드에 대한 getter/setter 메서드 추가
+    public void setAverageRating(double averageRating) {
+        this.averageRating = averageRating;
+    }
 }

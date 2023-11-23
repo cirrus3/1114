@@ -341,14 +341,14 @@ public class MapsEditActivity extends AppCompatActivity implements OnMapReadyCal
                     String openingTime = markerSnapshot.child("openingTime").getValue(String.class);
                     String closingTime = markerSnapshot.child("closingTime").getValue(String.class);
                     String registrationDate = markerSnapshot.child("registrationDate").getValue(String.class);
-                    String markerUserId = markerSnapshot.child("userId").getValue(String.class);
+                    String markerUserId = markerSnapshot.child("id").getValue(String.class);
 
                     if (latitude != null && longitude != null) {
                         LatLng location = new LatLng(latitude, longitude);
                         Marker marker = mMap.addMarker(new MarkerOptions()
                                 .position(location)
                                 .title(title)
-                                .snippet(content + "\n영업 시간: " + openingTime + " - " + closingTime + "\n등록일자: " + registrationDate));
+                                .snippet(content + "\n영업 시간: " + openingTime + " - " + closingTime + "\n등록일자: " + registrationDate+ "\n마커등록자: " +markerUserId));
 
                         // Set the user ID as the tag for the marker
                         marker.setTag(markerUserId);

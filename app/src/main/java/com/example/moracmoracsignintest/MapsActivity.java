@@ -44,7 +44,6 @@ import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
@@ -89,7 +88,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                             String openingTime = markerSnapshot.child("openingTime").getValue(String.class);
                             String closingTime = markerSnapshot.child("closingTime").getValue(String.class);
                             String registrationDate = markerSnapshot.child("registrationDate").getValue(String.class);
-
                             if (idid != null) {
                                 markerId = idid;
                                 dialogMessage.append("오픈 시간: ").append(openingTime).append("\n");
@@ -98,95 +96,92 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                             }
                         }
 
-                        // Set the message after fetching additional data
-//                        dialogBuilder.setMessage(dialogMessage.toString());
-//
-//                        // Create and show the AlertDialog
-//                        AlertDialog alertDialog = dialogBuilder.create();
-//                        alertDialog.show();
+                        DatabaseReference reviewsRef = FirebaseDatabase.getInstance().getReference("store_reviews");
+                        Query reviewsQuery = reviewsRef.orderByChild("storeName").equalTo(marker.getTitle());
+
+                        reviewsQuery.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                int totalRating = 0;
+                                int numberOfReviews = 0;
+
+                                for (DataSnapshot reviewSnapshot : dataSnapshot.getChildren()) {
+                                    ReviewData reviewData = reviewSnapshot.getValue(ReviewData.class);
+                                    if (reviewData != null) {
+                                        if (reviewData.getStoreName().equals(marker.getTitle())) {
+                                            int rating = reviewData.getRating();
+                                            totalRating += rating;
+                                            numberOfReviews++;
+                                        }
+                                    }
+                                }
+
+                                averageRating = (numberOfReviews > 0) ? (double) totalRating / numberOfReviews : 3.;
+
+                                // StoreReview 객체 생성
+                                StoreReview storeReview = new StoreReview(marker.getTitle(), averageRating);
+
+                                dialogMessage.append("평균 평점: ").append(storeReview.getAverageRating()).append("\n");
+
+                                // StoreReview 객체를 사용하여 다양한 작업 수행 가능
+                                // 예: storeReview.getStoreName(), storeReview.setAverageRating(), 등
+
+                                dialogBuilder.setMessage(dialogMessage.toString());
+
+                                dialogBuilder.setPositiveButton("자세히 보기", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        Intent intent = new Intent(MapsActivity.this, UserMenuActivity.class);
+                                        intent.putExtra("id", marker.getSnippet());
+                                        startActivity(intent);
+                                    }
+                                });
+
+                                dialogBuilder.setNegativeButton("확인", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                });
+
+                                dialogBuilder.setNeutralButton("공지 보기", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        Intent noticeIntent = new Intent(MapsActivity.this, UserNoteActivity.class);
+                                        startActivity(noticeIntent);
+                                    }
+                                });
+
+                                dialogBuilder.setNegativeButton("길 안내", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        LatLng markerLocation = marker.getPosition();
+                                        String label = marker.getTitle();
+                                        String uriString = "google.navigation:q=" + markerLocation.latitude + "," + markerLocation.longitude + "&mode=d";
+                                        Uri gmmIntentUri = Uri.parse(uriString);
+                                        Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
+                                        mapIntent.setPackage("com.google.android.apps.maps");
+                                        if (mapIntent.resolveActivity(getPackageManager()) != null) {
+                                            startActivity(mapIntent);
+                                        } else {
+                                            Toast.makeText(MapsActivity.this, "구글 지도 앱이 설치되어 있지 않습니다.", Toast.LENGTH_SHORT).show();
+                                        }
+                                    }
+                                });
+
+                                dialogBuilder.show();
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+                                Log.v(TAG, "Firebase Realtime Database에서 리뷰 데이터를 읽는 데 실패했습니다: " + error.getMessage());
+                            }
+                        });
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
                         Log.v("showDatafail", "id : " + markerId);
-                    }
-                });
-
-
-
-                DatabaseReference reviewsRef = FirebaseDatabase.getInstance().getReference("store_reviews");
-                Query reviewsQuery = reviewsRef.orderByChild("storeName").equalTo(marker.getTitle());
-
-                reviewsQuery.addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        int totalRating = 0;
-                        int numberOfReviews = 0;
-
-                        for (DataSnapshot reviewSnapshot : dataSnapshot.getChildren()) {
-                            ReviewData reviewData = reviewSnapshot.getValue(ReviewData.class);
-                            if (reviewData != null) {
-                                if (reviewData.getStoreName().equals(marker.getTitle())) {
-                                    int rating = reviewData.getRating();
-                                    totalRating += rating;
-                                    numberOfReviews++;
-                                }
-                            }
-                        }
-
-                        averageRating = (numberOfReviews > 0) ? (double) totalRating / numberOfReviews : 0.0;
-
-                        dialogMessage.append("평균 평점: ").append(averageRating).append("\n");
-
-                        dialogBuilder.setMessage(dialogMessage.toString());
-
-                        dialogBuilder.setPositiveButton("자세히 보기", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                Intent intent = new Intent(MapsActivity.this, UserMenuActivity.class);
-                                intent.putExtra("id", marker.getSnippet());
-                                startActivity(intent);
-                            }
-                        });
-
-                        dialogBuilder.setNegativeButton("확인", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        });
-
-                        dialogBuilder.setNeutralButton("공지 보기", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                Intent noticeIntent = new Intent(MapsActivity.this, UserNoteActivity.class);
-                                startActivity(noticeIntent);
-                            }
-                        });
-
-                        dialogBuilder.setNegativeButton("길 안내", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                LatLng markerLocation = marker.getPosition();
-                                String label = marker.getTitle();
-                                String uriString = "google.navigation:q=" + markerLocation.latitude + "," + markerLocation.longitude + "&mode=d";
-                                Uri gmmIntentUri = Uri.parse(uriString);
-                                Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
-                                mapIntent.setPackage("com.google.android.apps.maps");
-                                if (mapIntent.resolveActivity(getPackageManager()) != null) {
-                                    startActivity(mapIntent);
-                                } else {
-                                    Toast.makeText(MapsActivity.this, "구글 지도 앱이 설치되어 있지 않습니다.", Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                        });
-
-                        dialogBuilder.show();
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-                        Log.v(TAG, "Firebase Realtime Database에서 리뷰 데이터를 읽는 데 실패했습니다: " + error.getMessage());
                     }
                 });
 
@@ -271,7 +266,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void searchMarkers(String query) {
         DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("markers");
-        Query searchQuery = databaseReference.orderByChild("name").startAt(query).endAt(query + "\uf8ff");
+        Query searchQuery = databaseReference.orderByChild("title").startAt(query).endAt(query + "\uf8ff");
         Query contentQuery = databaseReference.orderByChild("content").startAt(query).endAt(query + "\uf8ff");
 
         List<MarkerData> markerList = new ArrayList<>();
